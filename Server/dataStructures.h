@@ -104,17 +104,15 @@ typedef struct {
 	char	password[CRE_MAXLEN];
 	char	cookie[COOKIE_LEN];
 	bool	isLocked = 0;
-	bool	isActive = 0;
 	time_t	lastActive = 0;
-	HANDLE	mutex;
 	char	workingDir[MAX_PATH];
 	Group*	workingGroup = NULL;
+	HANDLE	mutex;
 	LPMESSAGE_LIST queuedMess = NULL;
 } Account;
 
 typedef struct {
 	Account*	account;
-	SOCKET      socket;
 	int			numOfAttempts = 0;
 	time_t		lastAtempt;
 } Attempt;

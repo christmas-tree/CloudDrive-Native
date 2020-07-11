@@ -18,14 +18,11 @@ int main(int argc, char** argv)
 		return 1;
 
 	// Open data file
-	iRetVal = openFile("accData");
-	if (iRetVal == 1)
+	if (openFile("accData"))
 		return 1;
 
 	// Start program
 	runUI();
-
-	// ioCleanup();
 
 	return 0;
 }

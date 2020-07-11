@@ -13,15 +13,13 @@ int addUserToGroupDb(Account* account, Group* group);
 int deleteUserFromGroupDb(Account* account, Group* group);
 int addGroupDb(Group* group);
 
-// Add part where owner cannot leave the group
-
-// Add part where user wants to go back to the folder whose subdirectory is the group directory.
 
 sqlite3 *db;
 
-/*
-Return 0 if success
-*/
+
+// Function: openDb
+// Description: Open database and store database info in variable db
+// Return: 0 if succeed, else return 1
 int openDb() {
 	char *err_msg = 0;
 	int ret = sqlite3_open(DB_NAME, &db);
@@ -33,9 +31,10 @@ int openDb() {
 	return 0;
 }
 
-/*
-Return 0 if success
-*/
+// Function: readAccountDb
+// Description: Read account information from databse
+// Return: 0 if succeed, else return 1
+// -OUT: accList: linked list to store accounts read from database
 int readAccountDb(std::list<Account>& accList) {
 	Account acc;
 	sqlite3_stmt *res;
@@ -58,6 +57,8 @@ int readAccountDb(std::list<Account>& accList) {
 		strcpy_s(acc.password, CRE_MAXLEN, (const char *) sqlite3_column_text(res, 2));
 		acc.isLocked = (sqlite3_column_int(res, 3) == 1);
 
+		acc.mutex = CreateMutex(NULL, false, NULL);
+
 		accList.push_back(acc);
 	}
 
@@ -66,9 +67,11 @@ int readAccountDb(std::list<Account>& accList) {
 	return 0;
 }
 
-/*
-Return 0 if success
-*/
+
+// Function: readGroupDb
+// Description: Read group information from databse
+// Return: 0 if succeed, else return 1
+// -OUT: groupList: linked list to store groups read from database
 int readGroupDb(std::list<Group>& groupList) {
 	Group group;
 	sqlite3_stmt *res;
@@ -99,10 +102,12 @@ int readGroupDb(std::list<Group>& groupList) {
 	return 0;
 }
 
-/*
-Return 1/0 if has access or not
-Return -1 if server fails
-*/
+// Function: accountHasAccessToGroupDb
+// Description: Read from database to see if an account has access to a group
+// Return: 1 if the account has access, return 0 if not
+//         return -1 if fail to read database
+// -IN: account: Account to check
+//      groupName: a char array which has the group name to check
 int accountHasAccessToGroupDb(Account* account, char* groupName) {
 	sqlite3_stmt *res;
 	int ret;
@@ -131,9 +136,12 @@ int accountHasAccessToGroupDb(Account* account, char* groupName) {
 	return ret;
 }
 
-/*
-Return 0 if success
-*/
+// Function: queryGroupForAccount
+// Description: Read from database for a list of the groups that
+//              an user has access to.
+// Return: 0 if succeed, else return 1
+// -IN: account: Account to check
+// -OUT: groupList: a list to store the group information
 int queryGroupForAccount(Account* account, std::list<Group> &groupList) {
 	sqlite3_stmt *res;
 	int ret;
@@ -167,9 +175,11 @@ int queryGroupForAccount(Account* account, std::list<Group> &groupList) {
 	return ret;
 }
 
-/*
-Return 0 if success
-*/
+// Function: addUserToGroupDb
+// Description: Add an user access to a group in database
+// Return: 0 if succeed, else return 1
+// -IN: account: Account to add
+//      group:   Group to add
 int addUserToGroupDb(Account* account, Group* group) {
 	sqlite3_stmt *res;
 	int ret;
@@ -195,6 +205,11 @@ int addUserToGroupDb(Account* account, Group* group) {
 	return ret;
 }
 
+// Function: deleteUserFromGroupDb
+// Description: Remove an user's access to a group in database
+// Return: 0 if succeed, else return 1
+// -IN: account: Account to remove
+//      group:   Group to remove
 int deleteUserFromGroupDb(Account* account, Group* group) {
 	sqlite3_stmt *res;
 	int ret;
@@ -220,6 +235,10 @@ int deleteUserFromGroupDb(Account* account, Group* group) {
 	return ret;
 }
 
+// Function: addGroupDb
+// Description: add a new group to database
+// Return: 0 if succeed, else return 1
+// -IN: group:   Group to add to database
 int addGroupDb(Group* group) {
 	sqlite3_stmt *res;
 	int ret;
@@ -248,6 +267,10 @@ int addGroupDb(Group* group) {
 	return ret;
 }
 
+// Function: lockAccountDb
+// Description: update an user's status in database
+// Return: 0 if succeed, else return 1
+// -IN: account:   Account to update in database
 int lockAccountDb(Account* account) {
 	sqlite3_stmt *res;
 	int ret;
@@ -273,6 +296,8 @@ int lockAccountDb(Account* account) {
 	return ret;
 }
 
+// Function: closeDb
+// Description: close the opened database
 void closeDb() {
 	sqlite3_close(db);
 }

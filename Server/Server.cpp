@@ -3,7 +3,7 @@
 #include <ws2tcpip.h>
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 
 #define _CRT_SECURE_NO_WARNINGS
-// Link to Mswsock.lib, Microsoft specific
+
 #include <mswsock.h>
 #include <windows.h>
 #include <stdio.h>
@@ -531,6 +531,11 @@ void EnqueuePendingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end, BUFFER_OBJ *ob
 	return;
 }
 
+// Function: EnqueueDownloadingOperation
+// Description: Enqueues a buffer object into a list (at the end).
+// IN -BUFFER_OBJ **head: pointer to the address of head of Downloading buffer queue.
+//    -BUFFER_OBJ **end: pointer to the address of end of Downloading buffer queue.
+//    -BUFFER_OBJ *obj: pointer to buffer object to Downloading buffer queue.
 void EnqueueDownloadingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end, BUFFER_OBJ *obj)
 {
 
@@ -552,6 +557,11 @@ void EnqueueDownloadingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end, BUFFER_OBJ
 	return;
 }
 
+// Function: EnqueueUploadingOperation
+// Description: Enqueues a buffer object into a list (at the end).
+// IN -BUFFER_OBJ **head: pointer to the address of head of Uploading buffer queue.
+//    -BUFFER_OBJ **end: pointer to the address of end of Uploading buffer queue.
+//    -BUFFER_OBJ *obj: pointer to buffer object to Uploading buffer queue 
 void EnqueueUploadingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end, BUFFER_OBJ *obj)
 {
 
@@ -599,6 +609,11 @@ BUFFER_OBJ *DequeuePendingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end, int op)
 	return obj;
 }
 
+// Function: DequeueDownloadingOperation
+// Description: Dequeues the first entry in the list.
+// IN:  -BUFFER_OBJ **head:pointer to the address of head of Downloading buffer queue.
+//      -BUFFER_OBJ **end :pointer to the address of end of Downloading buffer queue.
+// OUT: -BUFFER_OBJ *     : poninter to the buffer object
 BUFFER_OBJ *DequeueDownloadingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end)
 {
 	BUFFER_OBJ *obj = NULL;
@@ -619,6 +634,11 @@ BUFFER_OBJ *DequeueDownloadingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end)
 	return obj;
 }
 
+// Function: DequeueUploadingOperation
+// Description: Dequeues the first entry in the list.
+// IN: -BUFFER_OBJ **head:pointer to address of the head of Uploading buffer queue.
+//    -BUFFER_OBJ **end :pointer toaddress of  the end of Uploading buffer queue.
+// OUT: -BUFFER_OBJ *     : poninter to the buffer object
 BUFFER_OBJ *DequeueUploadingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end)
 {
 	BUFFER_OBJ *obj = NULL;
@@ -646,7 +666,6 @@ BUFFER_OBJ *DequeueUploadingOperation(BUFFER_OBJ **head, BUFFER_OBJ **end)
 
 void ProcessPendingOperations()
 {
-	fprintf(stderr, "sending");
 	BUFFER_OBJ *sendobj = NULL;
 	while (gOutstandingSends < gMaxSends)
 	{
@@ -669,6 +688,11 @@ void ProcessPendingOperations()
 	return;
 }
 
+// Function: ProcessDownloadingOperations
+// Description:
+//    This function goes through the list of pending Downloading operations 
+//    and process them end then postRecv or enqueuePendingOperations if needed
+//    as long as the maximum number of outstanding downloads is not exceeded.
 void ProcessDownloadingOperations()
 {
 	BUFFER_OBJ *readobj = NULL;
@@ -808,6 +832,11 @@ void ProcessDownloadingOperations()
 	return;
 }
 
+// Function: ProcessUploadingOperations
+// Description:
+//    This function goes through the list of pending Uploading operations 
+//    and process them end then postRecv or enqueuePendingOperations if needed
+//    as long as the maximum number of outstanding uploads is not exceeded.
 void ProcessUploadingOperations() {
 	BUFFER_OBJ *writeobj = NULL;
 	BUFFER_OBJ *rcvobj = NULL;
@@ -1362,7 +1391,6 @@ int PostAccept(LISTEN_OBJ *listen, BUFFER_OBJ *acceptobj)
 //    This function handles the IO on a socket. In the event of a receive, the
 //    completed receive is posted again. For completed accepts, another AcceptEx
 //    is posted. For completed sends, the buffer is freed.
-
 void HandleIo(ULONG_PTR key, BUFFER_OBJ *buf, HANDLE CompPort, DWORD BytesTransfered, DWORD error)
 {
 	LISTEN_OBJ *listenobj = NULL;
@@ -1620,7 +1648,6 @@ void HandleIo(ULONG_PTR key, BUFFER_OBJ *buf, HANDLE CompPort, DWORD BytesTransf
 	}
 	else if (buf->operation == OP_WRITE)
 	{
-		fprintf(stderr, "wrtting:");
 		sockobj = (SOCKET_OBJ *)key;
 		InterlockedDecrement(&sockobj->OutstandingSend);
 		InterlockedDecrement(&gOutstandingSends);
@@ -1673,7 +1700,6 @@ void HandleIo(ULONG_PTR key, BUFFER_OBJ *buf, HANDLE CompPort, DWORD BytesTransf
 			else if (queueMessage->opcode == OPS_OK)
 			{
 				InterlockedDecrement(&gOutstandingUploads);
-				fprintf(stderr, "checking upload");
 				recvobj = buf;
 				recvobj->sock = sockobj;
 				recvobj->sock->mess = *queueMessage;
@@ -1703,6 +1729,7 @@ void HandleIo(ULONG_PTR key, BUFFER_OBJ *buf, HANDLE CompPort, DWORD BytesTransf
 
 		if (bCleanupSocket)
 		{
+			disconnect(sockobj->s);
 			closesocket(sockobj->s);
 			sockobj->s = INVALID_SOCKET;
 			FreeSocketObj(sockobj);
@@ -1762,6 +1789,11 @@ DWORD WINAPI CompletionThread(LPVOID lpParam)
 	return 0;
 }
 
+// Function: workerReadThread
+// Description:
+//    This is the  thread which services our Download file protocol . One of
+//    these threads is created  on the system. The thread sits in
+//    an infinite loop calling ProcessDownloadingOperations to process file operation needed .
 unsigned __stdcall workerReadThread(void *param)
 {
 	while (TRUE)
@@ -1770,6 +1802,11 @@ unsigned __stdcall workerReadThread(void *param)
 	}
 }
 
+// Function: workerWriteThread
+// Description:
+//    This is the  thread which services our Upload file protocol . One of
+//    these threads is created  on the system. The thread sits in
+//    an infinite loop calling ProcessUploadingOperations to process file operation needed .
 unsigned __stdcall workerWriteThread(void *param)
 {
 	while (TRUE)
